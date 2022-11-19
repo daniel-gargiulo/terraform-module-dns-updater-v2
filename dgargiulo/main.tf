@@ -1,20 +1,38 @@
 /**
 * # Terraform
+*This module take all json files within input-json folder and create a new dns type 'a' record (resource dns_a_record_set.www)
+*Only json files will be taken as local variables, if you upload other type of file, will be ignored, to cange it please edit the .gitignore file.
 *
-* <Short TF module description>
+* .
+*    ├── input-json
+*    │   ├── finance.json
+*    │   ├── procurement.json
+*    │   ├── rrhh.json
+*    │   └── www.json
+*    ├── main.tf
+*    ├── outputs.tf
+*    ├── provider.tf
+*    └── variables.tf
 *
 *
 * ## Usage
-*
+* upload well formed json files to the folder input-json 
+* run -
+*      terraform init 
+*      terraform plan (check the data)
+*      terraform apply (confirm with yes)
+*      
 * ### Quick Example
-*
-* ```hcl
-* module "dns_" {
-*   source = ""
-*   input1 = <>
-*   input2 = <>
-* } 
-* ```
+* Json files example (finance.json)
+*  
+* {
+*      "addresses": [
+*          "192.168.100.2"
+*      ],
+*      "ttl": 600,
+*      "zone": "example.com.",
+*      "dns_record_type": "a"
+* }
 *
 */
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -35,32 +53,35 @@ terraform {
   required_providers {
     dns = {
       source  = "hashicorp/dns"
-      version = ">= 3.2.0"
+      version = ">= 3.2.3"
     }
   }
 }
-
 
 # ------------------------------------------
 # Write your local resources here
 # ------------------------------------------
 
 locals {
-
+  json_data = [for f in fileset("${path.module}/input-json/", "*.json") :
+    {
+      local_data = jsondecode(file("${path.module}/input-json/${f}"))
+    }
+  ]
 }
 
 
 # ------------------------------------------
 # Write your Terraform resources here
 # ------------------------------------------
+## This resource can be improved by adding a for each to read more than one address.
 
 resource "dns_a_record_set" "www" {
-  zone = "example.com."
-  name = "www"
+  count = length(local.json_data)
+  zone  = local.json_data[count.index].local_data.zone
+  name  = "www"
   addresses = [
-    "192.168.0.1",
-    "192.168.0.2",
-    "192.168.0.3",
+    local.json_data[count.index].local_data.addresses[0]
   ]
-  ttl = 300
+  ttl = local.json_data[0].local_data.ttl
 }

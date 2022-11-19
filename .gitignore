@@ -30,3 +30,6 @@ override.tf.json
 # example: *tfplan*
 
 # End of https://www.toptal.com/developers/gitignore/api/terraform
+
+# prevents upload an non json file to input-json folder
+!**/input-json/*.json 
